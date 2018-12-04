@@ -1,0 +1,6 @@
+[my-config]
+MODEL_SEGMENT_GRAPH_PATH = /home/hoanganh/catkin_ws/src/video_stream_python/scripts/model_mobilenet_pretrain_synthia.json
+MODEL_SEGMENT_WEIGHT_PATH = /home/hoanganh/catkin_ws/src/video_stream_python/scripts/model_weight_mobilenet_pretrain_synthia.h5
+IMAGE_SUB_CHANNEL = /Team1_image/compressed
+SPEED_PUB_CHANNEL = /Team1_speed
+STEER_PUB_CHANNEL = /Team1_steerAngle
