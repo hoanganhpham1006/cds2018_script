@@ -15,10 +15,10 @@ from random import randint
 import time
 from steer import SegmentToSteer
 import configparser
+import os
 
 config = configparser.RawConfigParser()
-configFilePath = r'./config.env'
-config.read(configFilePath)
+config.read(os.path.join(os.getcwd(), 'config.env'))
 end = time.time()
 
 class processor:
