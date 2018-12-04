@@ -1,7 +1,7 @@
 # cds2018_script
 video_stream_python/scripts
 
-##First time
+## First time
 
 1. Git clone
 
@@ -9,7 +9,7 @@ video_stream_python/scripts
 
 3. Copy content of config.env1, edit to adapt with your path, your environment
 
-##Convention
+## Convention
 1. Update code => Create new branch, create pull request
 
 2. Adding more model => edit both config.env and config.env1 (ONLY ADD MORE OR CHANGING, IF ONLY CHANGING PATH OF config.env to
