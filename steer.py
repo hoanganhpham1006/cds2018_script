@@ -1,18 +1,19 @@
 import cv2
 import numpy as np
 import time
+from collections import deque
 total_time = 0
-last = 0
-flag = 0
+last = time.time()
+pre_flag = 0
 class SegmentToSteer():
-    def __init__(self, square=3, margin=30, roi=1/3):
+    def __init__(self, square=3, margin=30, roi=1/3, size=10):
         self.square = square
         self.margin = margin
+        self.size = size
+        self.memory = deque()
         self.roi = 1-roi
-    def get_point(self, img):
-        global total_time
-        global last
-        global flag
+    def get_point(self, img, flag):
+
         IMG_H, IMG_W = img.shape
         i = int(IMG_H * self.roi)
         border = int((self.square - 1) / 2)
@@ -40,30 +41,42 @@ class SegmentToSteer():
                 break
             else:
                 i_r -= (border + 1)
-        interval = time.time() - last
-        last = time.time()
-        if total_time > 0 and total_time < 3:
-            total_time += interval
-            if flag == 1:
-                while img[i][i_r] == 255 and i >= 0:
-                    i-=1
-                return i, i_r
-            elif flag == 2:
-                while img[i][i_l] == 255 and i >= 0:
-                    i-=1
-                return i, i_l
-            else:
-                return i, int((i_l + i_r) /2)
-        else:
-            total_time = 0
-            if flag == 3:
-                flag = 0
-        if not turn_left and not turn_right:
+        #     print (flag, total_time)
+        #     total_time += interval
+        #     if flag == 1:
+        #         # while img[i][i_r] == 255 and i >= 0:
+        #         #     i-=1
+        #         # return i, i_r
+        #         return i, IMG_W + 1
+        #     elif flag == -1:
+        #         # while img[i][i_l] == 255 and i >= 0:
+        #         #     i-=1
+        #         # return i, i_l
+        #         return i, -1
+        #     else:
+        #         return i, int((i_l + i_r) /2)
+        # else:
+        #     total_time = 0
+        if flag == 1:
+            return i, IMG_W + 1
+        elif flag == -1:
+            return i, -1
+        elif not turn_left and not turn_right:
             return i, int((i_l + i_r) / 2)
-        elif turn_left and turn_right:
-            flag += 1
-            total_time += interval
-            return i, i_r
+        # elif turn_left and turn_right:
+        #     if flag == 1:
+        #         while img[i][i_r] == 255 and i >= 0:
+        #             i-=1
+        #         return i, i_r
+        #     elif flag == -1:
+        #         while img[i][i_l] == 255 and i >= 0:
+        #             i-=1
+        #         return i, i_l
+            # else:
+            #     return i, int((i_l + i_r) / 2)
+            # return i, int((i_l + i_r) /2)
+            
+            # return i, i_r
         elif turn_left:
             while img[i][i_l] == 255 and i >= 0:
                 i-=1
@@ -73,31 +86,46 @@ class SegmentToSteer():
                 i-=1
             return i, i_r
 
+    def get_flag(self):
+        arr = np.asarray(self.memory, np.int8)
+        return np.bincount(arr).argmax() - 1
+    
+    def addFlag(self, flag):
+        if len(self.memory) >= self.size:
+            self.memory.popleft()
+        self.memory.append(flag + 1)
 
-    def get_point_2(self, img):
+    def get_steer(self, img, flag):
+        global pre_flag
+        global total_time
+        global last
         IMG_H, IMG_W = img.shape
-        mid_x = 0
-        mid_y = 0
-        count = 0
-        for i in range(int(IMG_H * self.roi), IMG_H):
-            count += 1
-            left = 0
-            while img[i][left] != 255 and left < IMG_W/2:
-                left += 1
-            right = IMG_W-1
-            while img[i][right] != 255 and right >= IMG_W/2:
-                right -= 1
-            mid_x += int((left+right)/2)
-            mid_y += i
-        return int(mid_y/count), int(mid_x/count)
+        interval = time.time() - last
+        last = time.time()
+        current_flag = 0
+        if total_time > 0 and total_time < 2:
+            total_time += interval
+            if total_time > 0.25:
+            #     print (pre_flag, total_time)
+                current_flag = pre_flag
+        else:
+            total_time = 0
+            self.addFlag(flag)
+            current_flag = self.get_flag()
+            if current_flag != 0 and current_flag != pre_flag:
+                pre_flag = current_flag
+                total_time += interval
+            else:
+                pre_flag = current_flag
 
-    def get_steer(self, img):
-        IMG_H, IMG_W = img.shape
-        img = np.asarray(img, np.uint8)
-        # img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)[1]
-        y, x = self.get_point(img)
+        y, x = self.get_point(img, current_flag)
         cv2.line(img, (x, y), (int(IMG_W / 2), IMG_H - 1), (0, 0, 0), 1)
         steer = np.arctan((x - IMG_W/2 + 1) / (IMG_H - float(y))) * 57.32
+
+        if x == IMG_W + 1:
+            steer = 60
+        elif x == -1:
+            steer = -60
 
         font = cv2.FONT_HERSHEY_COMPLEX_SMALL
         bottomLeftCornerOfText = (30, 30)
