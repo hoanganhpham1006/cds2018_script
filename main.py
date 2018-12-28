@@ -10,10 +10,11 @@ from sensor_msgs.msg import CompressedImage
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import tensorflow as tf
-import os
+import os.path
 from tensorflow.keras.models import model_from_json, load_model
 from random import randint
-from detection import detect
+# from detection import detect
+from signRecognition import detect1
 import time
 
 from steer import SegmentToSteer
@@ -21,7 +22,9 @@ import configparser
 
 config = configparser.RawConfigParser()
 # configFilePath = r'/home/hieung1707/catkin_ws/src/video_stream_python/scripts/config.env1'
-config.read(os.path.join(os.path.dirname(__file__), 'config.env1'))
+configFilePath = os.path.join(os.path.dirname(__file__), 'config.env1')
+print configFilePath
+config.read(configFilePath)
 end = time.time()
 
 class processor:
@@ -54,16 +57,15 @@ class processor:
 				with self.graph.as_default():
 					self.image = self.convert_data_to_image(data.data)
 					img_cpy = self.image.copy()
-					flag, s = detect(img_cpy)
+					flag, s = detect1(img_cpy)
+					# detect1(self.image.copy())
 					cv2.imshow('image', img_cpy)
 					cv2.waitKey(1)
 					y = rospy.get_time()
-					# if s != 0:
-					# 	print(flag, s)
 					res = self.get_segment_image(self.image)
-					steer, res = self.s2s.get_steer(res*255., flag)
+					speed, steer, res = self.s2s.get_steer(res*255., flag, s)
 					# speed = 60*np.cos(abs(steer)*np.pi/180)
-					speed = 60
+					# speed = 60
 					cv2.imshow('segment', res*1.)
 					cv2.waitKey(1)
 					self.publish_data(speed, steer)
